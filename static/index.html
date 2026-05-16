@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microdrama AI | Professional Cinematic Intelligence</title>
+    
+    <!-- Meta Tags for SEO -->
+    <meta name="description" content="AI-powered microdrama generation pipeline. Transform long-form videos into engaging, continuous short-form clips.">
+    <meta property="og:title" content="Microdrama AI | Professional Cinematic Intelligence">
+    <meta property="og:description" content="Transform long-form videos into engaging, continuous short-form clips using advanced AI.">
+    
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Premium Background Effects -->
+    <div class="background-system">
+        <div class="glow-orb orb-primary"></div>
+        <div class="glow-orb orb-secondary"></div>
+        <div class="glass-overlay"></div>
+    </div>
+
+    <!-- Navigation -->
+    <header class="main-header">
+        <div class="container header-content">
+            <div class="brand">
+                <div class="logo-mark">
+                    <span class="mark-inner"></span>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-accent">MICRO</span>DRAMA
+                </div>
+            </div>
+            <div class="nav-meta">
+                <span class="status-badge">
+                    <span class="pulse-dot"></span> System Online
+                </span>
+                <span class="version-tag">PRO v3.0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <!-- Hero Section -->
+        <section class="hero-section container">
+            <div class="badge-wrapper">
+                <span class="feature-badge">Continuous Sequential Engine Active</span>
+            </div>
+            <h1 class="hero-title">
+                Cinematic Intelligence <br>
+                <span class="gradient-text">Redefined.</span>
+            </h1>
+            <p class="hero-subtitle">
+                Automatically partition long-form content into a seamless chain of emotion-safe, 
+                viral-ready micro-dramas. No manual cuts. No lost emotion.
+            </p>
+        </section>
+
+        <!-- Control Center -->
+        <section class="control-center container">
+            <div class="glass-card main-processing-card">
+                <div class="card-header">
+                    <div class="header-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="header-text">
+                        <h2>Processing Engine</h2>
+                        <p>Configure your narrative extraction parameters</p>
+                    </div>
+                </div>
+
+                <div class="form-grid" id="upload-form">
+                    <div class="input-group">
+                        <label>Content Genre</label>
+                        <select id="genre-input" class="premium-select">
+                            <option value="drama">🎬 Movie / Drama Series</option>
+                            <option value="news">📰 News / Broadcast</option>
+                            <option value="cartoon">🎨 Cartoon / Animation</option>
+                            <option value="documentary">🌍 Documentary</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Generation Mode</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="mode-toggle" checked>
+                            <label for="mode-toggle" class="toggle-label">
+                                <span class="toggle-text active">Continuous Partition</span>
+                                <span class="toggle-text inactive">Selective Highlights</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="upload-zone-wrapper" id="drop-zone">
+                        <input type="file" id="file-input" hidden accept="video/*">
+                        <div class="upload-placeholder" onclick="document.getElementById('file-input').click()">
+                            <div class="placeholder-content">
+                                <div class="pulse-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><polyline points="16 5 21 5 21 10"/><line x1="12" y1="12" x2="21" y2="3"/></svg>
+                                </div>
+                                <span>Drop high-fidelity source video or <strong>Click to Browse</strong></span>
+                                <p class="file-hint">MP4, MOV, or MKV • Max 30 mins recommended</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing State -->
+                <div class="processing-state hidden" id="processing-zone">
+                    <div class="ai-visualization">
+                        <div class="scanner-line"></div>
+                        <div class="data-particles"></div>
+                        <div class="ai-icon">🧠</div>
+                    </div>
+                    <h3 id="status-text">Initializing Pipeline...</h3>
+                    <p class="status-subtext">Running 6-Layer Intelligence Analysis</p>
+                    
+                    <div class="premium-progress">
+                        <div class="progress-info">
+                            <span id="progress-percentage">0%</span>
+                            <span id="current-layer">Layer 1/6</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" id="progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Display -->
+        <section class="results-section container hidden" id="results-zone">
+            <div class="results-toolbar">
+                <div class="toolbar-left">
+                    <h2>Narrative Timeline</h2>
+                    <p id="job-meta">Analysis Job: <span id="display-job-id">--</span></p>
+                </div>
+                <div class="toolbar-right">
+                    <div class="summary-chip">
+                        <span id="total-clips">0</span> Clips
+                    </div>
+                    <div class="summary-chip">
+                        <span id="total-series">0</span> Story Arcs
+                    </div>
+                </div>
+            </div>
+
+            <div id="series-container" class="timeline-container">
+                <!-- Injected Storyboards -->
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container footer-content">
+            <p>&copy; 2026 Microdrama AI • DD Waves Premium Intelligence</p>
+            <div class="footer-links">
+                <a href="#">Documentation</a>
+                <a href="#">API Reference</a>
+                <a href="#">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Templates for Dynamic Injection -->
+    <template id="series-template">
+        <div class="series-block">
+            <div class="series-header">
+                <div class="arc-badge">STORY ARC</div>
+                <h3 class="series-title"></h3>
+            </div>
+            <div class="storyboard-grid"></div>
+        </div>
+    </template>
+
+    <template id="episode-template">
+        <div class="story-card">
+            <div class="card-media">
+                <video preload="metadata"></video>
+                <div class="video-overlay">
+                    <div class="play-btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                </div>
+                <div class="timestamp-tag"></div>
+            </div>
+            <div class="card-body">
+                <div class="card-meta">
+                    <span class="ep-num">EPISODE 01</span>
+                    <div class="score-pill">
+                        <span class="score-value">94</span>
+                        <span class="score-label">Drama</span>
+                    </div>
+                </div>
+                <h4 class="clip-title">The Betrayal Discovery</h4>
+                <div class="clip-tags">
+                    <!-- Tags will be injected -->
+                </div>
+                <p class="clip-description"></p>
+                <div class="insight-box">
+                    <div class="insight-header">AI INSIGHT</div>
+                    <p class="insight-text"></p>
+                </div>
+                <div class="cliffhanger-box">
+                    <strong>CLIFFHANGER</strong>
+                    <p class="cliff-text"></p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="/static/main.js"></script>
+</body>
+</html>

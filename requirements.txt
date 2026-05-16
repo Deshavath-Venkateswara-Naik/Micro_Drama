@@ -1,0 +1,17 @@
+python-dotenv==1.0.1
+openai
+fastapi
+uvicorn
+python-multipart
+scenedetect
+openai-whisper
+librosa
+google-generativeai
+opencv-python
+deepface
+tf-keras
+google-cloud-aiplatform
+easyocr
+pyannote.audio
+torch
+torchaudio
