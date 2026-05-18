@@ -1,9 +1,10 @@
 /**
- * Microdrama AI - Professional Cinematic Intelligence
- * Main Frontend Controller
+ * Microdrama AI - Cinematic Intelligence Suite
+ * Premium Frontend Controller
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
     const fileInput = document.getElementById('file-input');
     const dropZone = document.getElementById('drop-zone');
     const uploadForm = document.getElementById('upload-form');
@@ -19,6 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const seriesTemplate = document.getElementById('series-template');
     const episodeTemplate = document.getElementById('episode-template');
     
+    // UI Interactions
+    const logoTrigger = document.getElementById('logo-trigger');
+    if (logoTrigger) {
+        logoTrigger.addEventListener('click', () => window.location.reload());
+    }
+
     // Handle File Selection
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
@@ -29,16 +36,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Drag and Drop
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        dropZone.classList.add('drag-over');
+        dropZone.querySelector('.modern-drop-zone').style.borderColor = 'var(--primary)';
+        dropZone.querySelector('.modern-drop-zone').style.background = 'rgba(139, 92, 246, 0.05)';
     });
 
     dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('drag-over');
+        dropZone.querySelector('.modern-drop-zone').style.borderColor = 'var(--glass-border)';
+        dropZone.querySelector('.modern-drop-zone').style.background = 'rgba(255, 255, 255, 0.02)';
     });
 
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropZone.classList.remove('drag-over');
         if (e.dataTransfer.files.length > 0) {
             handleUpload(e.dataTransfer.files[0]);
         }
@@ -48,10 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const genre = document.getElementById('genre-input').value;
         const partitionMode = document.getElementById('mode-toggle').checked;
 
-        // Transition UI
-        uploadForm.classList.add('hidden');
-        processingZone.classList.remove('hidden');
-        resultsZone.classList.add('hidden');
+        // Transition UI with animations
+        uploadForm.style.opacity = '0';
+        setTimeout(() => {
+            uploadForm.classList.add('hidden');
+            processingZone.classList.remove('hidden');
+            processingZone.style.opacity = '0';
+            setTimeout(() => processingZone.style.opacity = '1', 50);
+        }, 400);
 
         const formData = new FormData();
         formData.append('video', file);
@@ -83,14 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             renderResults(data.result);
                         }
                     } catch (e) {
-                        console.error("JSON Parse Error", line);
+                        console.error("Neural Stream Parse Error", line);
                     }
                 }
             }
         } catch (error) {
-            console.error("Upload Error", error);
-            statusText.innerText = "Error: Pipeline Interrupted";
-            statusText.style.color = "var(--accent)";
+            console.error("Pipeline Failure", error);
+            statusText.innerText = "CRITICAL: Pipeline Interrupted";
+            statusText.style.color = "var(--danger)";
         }
     }
 
@@ -101,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Extract layer number from status if present
             const layerMatch = data.status.match(/Layer (\d)/);
             if (layerMatch) {
-                currentLayerText.innerText = `Layer ${layerMatch[1]}/6`;
+                currentLayerText.innerText = `Stage ${layerMatch[1]}/6`;
             }
         }
         
@@ -113,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data.error) {
             statusText.innerText = `Error: ${data.error}`;
-            statusText.style.color = "var(--accent)";
+            statusText.style.color = "var(--danger)";
         }
     }
 
@@ -121,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         processingZone.classList.add('hidden');
         resultsZone.classList.remove('hidden');
         
-        document.getElementById('display-job-id').innerText = data.job_id.substring(0, 8) + '...';
+        document.getElementById('display-job-id').innerText = data.job_id.substring(0, 8).toUpperCase();
         
         const seriesList = data.series || [];
         document.getElementById('total-series').innerText = seriesList.length;
@@ -129,44 +141,106 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalEpisodesCount = 0;
         seriesContainer.innerHTML = '';
 
-        seriesList.forEach(series => {
+        seriesList.forEach((series, sIdx) => {
             const seriesClone = seriesTemplate.content.cloneNode(true);
-            seriesClone.querySelector('.series-title').innerText = series.series_title;
+            seriesClone.querySelector('.series-name').innerText = series.series_title;
             
-            const grid = seriesClone.querySelector('.storyboard-grid');
+            const grid = seriesClone.querySelector('.episodes-grid');
             const episodes = series.episodes || [];
             totalEpisodesCount += episodes.length;
 
-            episodes.forEach(ep => {
+            episodes.forEach((ep, eIdx) => {
                 const epClone = episodeTemplate.content.cloneNode(true);
+                const card = epClone.querySelector('.premium-clip-card');
                 
+                // Entrance animation delay
+                card.style.animationDelay = `${(sIdx * 0.2) + (eIdx * 0.1)}s`;
+
                 // Video Handling
                 const video = epClone.querySelector('video');
                 video.src = ep.video_url;
                 
-                // Card Media Overlay click to play
-                const mediaContainer = epClone.querySelector('.card-media');
-                mediaContainer.addEventListener('click', () => {
-                    if (video.paused) {
-                        video.play();
-                        mediaContainer.querySelector('.video-overlay').style.opacity = '0';
-                    } else {
-                        video.pause();
-                        mediaContainer.querySelector('.video-overlay').style.opacity = '1';
+                // Play logic
+                const visualContainer = epClone.querySelector('.clip-visual');
+                const overlay = visualContainer.querySelector('.clip-overlay');
+                const seekSlider = epClone.querySelector('.seek-slider');
+                const seekProgress = epClone.querySelector('.seek-progress');
+                const durationBadge = epClone.querySelector('.duration-badge');
+
+                // Update seek bar as video plays
+                video.addEventListener('timeupdate', () => {
+                    if (video.duration) {
+                        const progress = (video.currentTime / video.duration) * 100;
+                        seekProgress.style.width = `${progress}%`;
+                        seekSlider.value = progress;
+                        
+                        // Update duration badge with current/total
+                        const cur = formatTime(video.currentTime);
+                        const tot = formatTime(video.duration);
+                        durationBadge.innerText = `${cur} / ${tot}`;
                     }
                 });
 
-                epClone.querySelector('.timestamp-tag').innerText = `${ep.start_time} - ${ep.end_time}`;
-                epClone.querySelector('.ep-num').innerText = `EPISODE ${ep.episode_number.toString().padStart(2, '0')}`;
-                epClone.querySelector('.score-value').innerText = ep.drama_score || '--';
-                epClone.querySelector('.clip-title').innerText = ep.title || 'Narrative Segment';
-                epClone.querySelector('.clip-description').innerText = ep.hook_caption || 'High-accuracy cinematic extraction.';
+                // Seeking logic
+                seekSlider.addEventListener('input', () => {
+                    if (video.duration) {
+                        const time = (seekSlider.value / 100) * video.duration;
+                        video.currentTime = time;
+                        seekProgress.style.width = `${seekSlider.value}%`;
+                    }
+                });
+
+                // Jump Buttons logic
+                const jumpBtns = epClone.querySelectorAll('.jump-btn');
+                jumpBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const point = parseFloat(btn.getAttribute('data-point'));
+                        if (video.duration) {
+                            video.currentTime = video.duration * point;
+                            video.play();
+                            overlay.style.opacity = '0';
+                        }
+                    });
+                });
+
+                visualContainer.addEventListener('click', (e) => {
+                    // Prevent play/pause toggle if clicking controls
+                    if (e.target.closest('.video-controls-overlay')) return;
+
+                    if (video.paused) {
+                        video.play();
+                        overlay.style.opacity = '0';
+                    } else {
+                        video.pause();
+                        overlay.style.opacity = '1';
+                    }
+                });
+
+                // Auto-play preview on hover
+                visualContainer.addEventListener('mouseenter', () => {
+                    video.play().catch(() => {});
+                });
+                visualContainer.addEventListener('mouseleave', () => {
+                    video.pause();
+                });
+
+                epClone.querySelector('.duration-badge').innerText = `${ep.start_time} - ${ep.end_time}`;
+                epClone.querySelector('.episode-index').innerText = `EPISODE ${ep.episode_number.toString().padStart(2, '0')}`;
+                epClone.querySelector('.score-num').innerText = ep.drama_score || '--';
+                epClone.querySelector('.clip-headline').innerText = ep.title || 'Narrative Segment';
+                epClone.querySelector('.clip-summary').innerText = ep.hook_caption || 'High-accuracy cinematic extraction based on neural narrative scoring.';
                 
-                // Insight Box
-                epClone.querySelector('.insight-text').innerText = ep.viral_reason || 'Identified by Gemini as a high-retention dramatic beat.';
+                // Arc Position
+                const posPill = epClone.querySelector('.arc-position-pill');
+                posPill.innerText = ep.narrative_arc_position || 'Scene';
+                if (ep.narrative_arc_position === 'peak') posPill.style.color = 'var(--secondary)';
+                
+                // Intel Box
+                epClone.querySelector('.intel-text').innerText = ep.viral_reason || 'Identified by Gemini as a high-retention dramatic beat with strong emotional resonance.';
                 
                 // Cliffhanger
-                epClone.querySelector('.cliff-text').innerText = ep.cliffhanger || 'Unresolved ending ensures viewer curiosity.';
+                epClone.querySelector('.alert-text').innerText = ep.cliffhanger || 'Unresolved narrative threads detected to ensure maximum viewer curiosity.';
 
                 grid.appendChild(epClone);
             });
@@ -177,6 +251,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('total-clips').innerText = totalEpisodesCount;
         
         // Smooth scroll to results
-        resultsZone.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => {
+            resultsZone.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+    }
+
+    function formatTime(seconds) {
+        if (isNaN(seconds)) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
     }
 });
