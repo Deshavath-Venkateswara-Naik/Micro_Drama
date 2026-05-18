@@ -9,30 +9,68 @@ class EpisodicSequencingEngine:
 
     def sequence_candidates(self, candidates: list) -> list:
         """
-        Groups and sequences candidates into a series format based on Narrative Arcs.
+        Groups and sequences candidates into a series format based on Movie Moment Types and Narrative Arcs.
         """
         if not candidates:
             return []
             
-        # Group by Narrative Arc
-        arcs = {}
+        # Group by Movie Moment Categories or Star Highlights
+        categories = {
+            "Action & High-Emotion": [],
+            "Comedy & Punchlines": [],
+            "High-Engagement Dialogues": [],
+            "Suspense & Climax": [],
+            "Star Spotlight": []
+        }
+        
         for cand in candidates:
-            arc_name = cand.get("narrative_arc") or "General Narrative"
-            if arc_name not in arcs:
-                arcs[arc_name] = []
-            arcs[arc_name].append(cand)
+            moment_types = cand.get("moment_types") or [cand.get("narrative_arc")] or []
+            if isinstance(moment_types, str):
+                moment_types = [moment_types.lower()]
+            else:
+                moment_types = [str(m).lower() for m in moment_types]
+                
+            added = False
             
+            # 1. Celebrity check
+            if cand.get("primary_celebrities") or "celebrity" in moment_types:
+                categories["Star Spotlight"].append(cand)
+                added = True
+                
+            # 2. Action check
+            if "action" in moment_types or any("action" in m for m in moment_types):
+                categories["Action & High-Emotion"].append(cand)
+                added = True
+                
+            # 3. Comedy check
+            if "comedy" in moment_types or any("comedy" in m for m in moment_types):
+                categories["Comedy & Punchlines"].append(cand)
+                added = True
+                
+            # 4. Suspense check
+            if "suspense" in moment_types or any("suspense" in m for m in moment_types):
+                categories["Suspense & Climax"].append(cand)
+                added = True
+                
+            # 5. Dialogue check
+            if "dialogue" in moment_types or any("dialogue" in m for m in moment_types) or not added:
+                categories["High-Engagement Dialogues"].append(cand)
+                added = True
+                
         series_list = []
-        for arc_name, arc_candidates in arcs.items():
-            # Sort candidates within each arc chronologically
+        for cat_name, cat_candidates in categories.items():
+            if not cat_candidates:
+                continue
+                
+            # Sort candidates chronologically
             def sort_key(x):
                 val = x.get("start_time") or x.get("startTime") or x.get("start") or "00:00:00"
                 return time_to_seconds(val)
-            arc_candidates.sort(key=sort_key)
+            cat_candidates.sort(key=sort_key)
             
             series_id = f"series_{len(series_list) + 1:03d}"
             episodes = []
-            for idx, cand in enumerate(arc_candidates):
+            for idx, cand in enumerate(cat_candidates):
                 episode = cand.copy()
                 episode["episode_number"] = idx + 1
                 episode["series_id"] = series_id
@@ -40,7 +78,7 @@ class EpisodicSequencingEngine:
                 # Assign arc position
                 if idx == 0:
                     episode["narrative_arc_position"] = "setup"
-                elif idx == len(arc_candidates) - 1:
+                elif idx == len(cat_candidates) - 1:
                     episode["narrative_arc_position"] = "peak"
                 else:
                     episode["narrative_arc_position"] = "escalation"
@@ -48,7 +86,7 @@ class EpisodicSequencingEngine:
                 
             series_list.append({
                 "series_id": series_id,
-                "series_title": f"The {arc_name} Collection",
+                "series_title": f"{cat_name} Collection",
                 "total_episodes": len(episodes),
                 "episodes": episodes
             })

@@ -13,7 +13,8 @@
     <!-- Google Fonts: Inter & Space Grotesk for a modern tech feel -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?famiLooking for the static index.html frontend file to add the trailer generation button
+ly=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="/static/style.css">
@@ -111,6 +112,25 @@
                                     </label>
                                 </div>
                             </div>
+
+                            <div class="input-field">
+                                <label>Target Moment</label>
+                                <div class="select-wrapper">
+                                    <select id="moment-input">
+                                        <option value="all">⭐ All Moments</option>
+                                        <option value="action">🔥 Action & High-Emotion</option>
+                                        <option value="comedy">⚡ Comedy & Punchlines</option>
+                                        <option value="dialogue">💬 Engaging Dialogues</option>
+                                        <option value="suspense">⏳ Suspense & Climax Hooks</option>
+                                        <option value="celebrity">🌟 Celebrity Spotlight</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="input-field">
+                                <label>Star Cast (Optional)</label>
+                                <input type="text" id="star-cast-input" placeholder="e.g. Shah Rukh Khan, Kajol" class="text-input">
+                            </div>
                         </div>
 
                         <div class="drop-zone-container" id="drop-zone">
@@ -129,6 +149,37 @@
                                     <span class="sub-text">Drag & drop or click to explore</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Trailer Generation Button - Always Visible -->
+                        <div class="trailer-generation-section">
+                            <div class="trailer-controls">
+                                <div class="trailer-duration-select">
+                                    <label>Trailer Duration</label>
+                                    <div class="select-wrapper">
+                                        <select id="trailer-length-input">
+                                            <option value="15">15 seconds</option>
+                                            <option value="30" selected>30 seconds</option>
+                                            <option value="60">60 seconds</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="trailer-style-select">
+                                    <label>Style</label>
+                                    <div class="select-wrapper">
+                                        <select id="trailer-style-input">
+                                            <option value="cinematic" selected>🎥 Cinematic</option>
+                                            <option value="action">🔥 Action</option>
+                                            <option value="suspense">⏳ Suspense</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="trailer-btn" id="trailer-generate-btn" type="button">
+                                <span class="trailer-btn-icon">🎬</span>
+                                <span class="trailer-btn-text">Short-Form Trailer Generation</span>
+                                <span class="trailer-btn-loader hidden" id="trailer-btn-loader"></span>
+                            </button>
                         </div>
                     </div>
 
@@ -256,6 +307,7 @@
             <div class="clip-info">
                 <div class="info-header">
                     <span class="episode-index">EPISODE 01</span>
+                    <div class="moment-badges-group"></div>
                     <div class="arc-position-pill">Setup</div>
                 </div>
                 <h4 class="clip-headline">The Initial Spark</h4>

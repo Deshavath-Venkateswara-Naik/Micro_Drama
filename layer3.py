@@ -11,23 +11,38 @@ from gemini_config import get_generative_model
 load_dotenv()
 
 SYSTEM_PROMPT = """You are a World-Class Cinematic Editor specializing in Microdrama conversion.
-Your mission is to extract the absolute best dramatic clips from any genre (News, Movies, Cartoons, TV Shows) in any language (including Hindi, English, etc.).
-Do NOT cut mid-emotion or mid-sentence.
+Your mission is to extract the absolute best dramatic clips from movies, TV shows, and other genres, and classify them into 5 target Movie Moment types:
+1. "action": High visual speed, fight/chase scenes, shouting, intense conflict, panic, heavy facial/vocal emotions.
+2. "comedy": Rapid dialogue banter, joke setups, witty punchlines, subverted expectations, and comedic beats.
+3. "dialogue": Engaging confrontations, arguments, confessions of love, poetic monologues, high verbal tension.
+4. "suspense": High-tension waiting periods, ticking clocks, mortal danger, and unresolved cliffhangers.
+5. "celebrity": Scenes focusing heavily on main star actors or characters.
 
 ACCURACY RULES:
 1. SEMANTIC SNAPPING: Every clip MUST start and end at a natural boundary.
    - START: Snap to the beginning of a Scene or the start of a Transcript segment.
    - END: Snap to the end of a Scene or the end of a Transcript segment.
-2. MULTI-LANGUAGE: The transcript might be in Hindi or other languages. Analyze the emotional arc and narrative regardless of language.
-3. GENRE-SPECIFIC FOCUS:
-   - NEWS: Extract complete reports or high-impact soundbites. Ensure tickers/OCR context is considered.
-   - CARTOONS: Focus on physical comedy beats or iconic catchphrases.
-   - DRAMA/MOVIES: Focus on character tension, long silences (tension), and emotional peaks.
-4. CLIFFHANGERS: Ensure the ending leaves the viewer wanting more, but do NOT cut the final word or emotional reaction.
+2. MULTI-LANGUAGE: Process the emotional arc and narrative regardless of the transcript language.
+3. MOVIE MOMENTS CATEGORIZATION:
+   - Identify and tag candidate clips with their appropriate moment_types from: ["action", "comedy", "dialogue", "suspense", "celebrity"].
+   - Assign a moment_intensity score (1-10) reflecting the strength of the primary moment.
+   - List any prominent character/celebrity names focused in the clip under primary_celebrities.
+4. CLIFFHANGERS: Ensure the ending leaves the viewer wanting more, especially for suspense/climax clips.
+5. PARTITION MODE: If active, divide the entire segment into continuous clips (30-90s each) that cover 100% of the timeline.
 
-5. PARTITION MODE (CRITICAL): If 'partition_mode' is active, your goal is NOT to find just the best clips. Your goal is to DIVIDE THE ENTIRE SEGMENT into a chain of continuous clips (30-90s each) that cover 100% of the timeline from the very first second to the very last.
-
-Use the provided Scene and Transcript IDs to specify your timestamps.
+Return JSON matching the MicrodramaCandidate format:
+{
+  "start_time": "HH:MM:SS",
+  "end_time": "HH:MM:SS",
+  "title": "Binge-worthy Title",
+  "hook_caption": "First-3-second hook caption text",
+  "cliffhanger_ending": "Description of cliffhanger/ending",
+  "narrative_arc": "Narrative Arc category (Revenge, Romance, Comedy, Hero Journey, Confrontation, Action, Suspense, etc.)",
+  "moment_types": ["action", "comedy", "dialogue", "suspense", "celebrity"],
+  "primary_celebrities": ["CharacterName_or_ActorName"],
+  "moment_intensity": 8,
+  "why_this_clip_performs": "Short description of viral/retention potential"
+}
 """
 
 GENRE_PROMPTS = {
@@ -47,7 +62,7 @@ GENRE_PROMPTS = {
     Look for "did you know" moments and compelling expert quotes."""
 }
 
-USER_PROMPT_TEMPLATE = """Analyze this video chunk for Microdrama potential.
+USER_PROMPT_TEMPLATE = """Analyze this video chunk for Microdrama potential and categorize its key moments.
 
 GENRE: {genre}
 SPECIALIZED FOCUS: {genre_focus}
@@ -55,17 +70,20 @@ SPECIALIZED FOCUS: {genre_focus}
 DATA LAYERS:
 - SCENES: {scene_json}
 - TRANSCRIPT: {transcript_json}
+- SPEAKER TURNS: {speaker_turns_json}
 - OCR (On-Screen Text): {ocr_json}
-- EMOTIONS: {emotion_json}
+- EMOTIONS & CELEBRITIES: {emotion_json}
+- SUSPENSE HOOKS: {suspense_hooks_json}
 
 INSTRUCTIONS:
 1. Identify {count_instruction}.
 2. For each candidate, provide the exact 'start_time' and 'end_time' that SNAPS to a scene or segment boundary.
 3. Classify each clip into a NARRATIVE ARC (e.g., Revenge, Romance, Comedy, Breaking News, Hero Journey).
-4. Explain why this clip is high-accuracy and preserves the emotional arc.
+4. Tag each candidate with its 'moment_types', 'primary_celebrities', and 'moment_intensity' (1-10).
+5. Explain why this clip is high-accuracy and preserves the emotional arc under 'why_this_clip_performs'.
 {partition_instruction}
 
-Return JSON in the MicrodramaCandidate format, including a 'narrative_arc' field.
+Return JSON in the MicrodramaCandidate format.
 """
 
 class StoryIntelligenceEngine:
@@ -123,8 +141,10 @@ class StoryIntelligenceEngine:
             partition_instruction=partition_instruction,
             scene_json=json.dumps(chunk_data.get("scenes", []), indent=2),
             transcript_json=json.dumps(chunk_data.get("transcript", []), indent=2),
+            speaker_turns_json=json.dumps(chunk_data.get("speaker_turns", []), indent=2),
             ocr_json=json.dumps(chunk_data.get("ocr_detections", []), indent=2),
-            emotion_json=json.dumps(chunk_data.get("emotions", []), indent=2)
+            emotion_json=json.dumps(chunk_data.get("emotions", []), indent=2),
+            suspense_hooks_json=json.dumps(chunk_data.get("suspense_hooks", []), indent=2)
         )
         
         try:

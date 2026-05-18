@@ -158,12 +158,75 @@ class DiarizationProcessor:
             
         return list(speakers_map.values())
 
+class StarCastMatcher:
+    def __init__(self, star_cast_dir="/home/venkateswara/Micro_Drama/star_cast"):
+        self.star_cast_dir = star_cast_dir
+        self.star_embeddings = {}
+        self.initialized = False
+        
+    def initialize(self):
+        if self.initialized:
+            return
+        if not os.path.exists(self.star_cast_dir):
+            os.makedirs(self.star_cast_dir, exist_ok=True)
+            
+        print(f"      [StarCastMatcher] Initializing star cast database from {self.star_cast_dir}...")
+        try:
+            # We will use DeepFace to extract embeddings for star cast photos
+            for file_name in os.listdir(self.star_cast_dir):
+                if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    star_name = os.path.splitext(file_name)[0]
+                    file_path = os.path.join(self.star_cast_dir, file_name)
+                    print(f"      [StarCastMatcher] Loading reference face for {star_name}...")
+                    emb_res = DeepFace.represent(img_path=file_path, enforce_detection=False, silent=True)
+                    if emb_res:
+                        self.star_embeddings[star_name] = emb_res[0]["embedding"]
+            self.initialized = True
+            print(f"      [StarCastMatcher] Loaded {len(self.star_embeddings)} star cast embeddings.")
+        except Exception as e:
+            print(f"      [StarCastMatcher] Failed to initialize star cast matcher: {e}")
+
+    def match_face(self, frame_path) -> List[Dict[str, Any]]:
+        """Matches faces in a frame against loaded star cast embeddings."""
+        if not self.star_embeddings:
+            return []
+        try:
+            rep_res = DeepFace.represent(img_path=frame_path, enforce_detection=False, silent=True)
+            matches = []
+            for face in rep_res:
+                face_emb = face["embedding"]
+                best_match = None
+                best_similarity = -1.0
+                for star_name, star_emb in self.star_embeddings.items():
+                    a = np.array(face_emb)
+                    b = np.array(star_emb)
+                    dot_product = np.dot(a, b)
+                    norm_a = np.linalg.norm(a)
+                    norm_b = np.linalg.norm(b)
+                    similarity = dot_product / (norm_a * norm_b + 1e-8)
+                    if similarity > best_similarity:
+                        best_similarity = similarity
+                        best_match = star_name
+                if best_match and best_similarity > 0.65:
+                    matches.append({
+                        "star_name": best_match,
+                        "similarity": round(float(best_similarity), 3),
+                        "box": face.get("box", {})
+                    })
+            return matches
+        except Exception as e:
+            return []
+
 class EmotionDetector:
     """
     4.4 Emotion Detection
     Detects facial and vocal emotion per scene.
     Upgrade: Sample every 2 seconds for high resolution.
     """
+    def __init__(self):
+        self.star_matcher = StarCastMatcher()
+        self.star_matcher.initialize()
+
     def process(self, chunk_data: Dict, transcripts: List[Dict]) -> List[Dict]:
         frames_dir = chunk_data.get("frames_path")
         if not frames_dir or not os.path.exists(frames_dir):
@@ -184,11 +247,17 @@ class EmotionDetector:
                     dominant = res.get("dominant_emotion")
                     confidence = res.get("emotion", {}).get(dominant, 0) / 100.0
                     
+                    # Run Celebrity recognition
+                    matched_stars = self.star_matcher.match_face(frame_path)
+                    star_names = [m["star_name"] for m in matched_stars]
+                    
                     emotions.append({
                         "timestamp": float(i), 
                         "face_emotion": dominant,
                         "face_confidence": round(confidence, 2),
-                        "composite_score": round(confidence, 2)
+                        "composite_score": round(confidence, 2),
+                        "celebrities": star_names,
+                        "celebrity_matches": matched_stars
                     })
             except Exception as e:
                 pass
@@ -225,6 +294,8 @@ class AudioAnalyzer:
         # 4. Music/Action Intensity (Spectral Flux)
         onset_env = librosa.onset.onset_strength(y=y, sr=sr)
         intensity_score = np.mean(onset_env)
+        spectral_flux_var = np.var(onset_env)
+        spectral_flux_max = np.max(onset_env) if len(onset_env) > 0 else 0
 
         # Detect specific dramatic events
         events = []
@@ -252,12 +323,45 @@ class AudioAnalyzer:
                     })
                 start_idx = None
 
+        # Detect suspense tension hooks: low-energy silence/gaps followed by loud climax peaks
+        suspense_hooks = []
+        silence_duration_threshold = 1.5 # seconds
+        
+        low_energy_start = None
+        for i, norm_val in enumerate(rms_norm):
+            if i >= len(times): break
+            if norm_val < 0.1:
+                if low_energy_start is None:
+                    low_energy_start = times[i]
+            else:
+                if low_energy_start is not None:
+                    silence_duration = times[i] - low_energy_start
+                    if silence_duration >= silence_duration_threshold:
+                        # Scan a small window ahead (approx 3 seconds) for a peak
+                        frames_3s = int(3.0 * sr / hop_length)
+                        end_scan = min(i + frames_3s, len(rms_norm))
+                        peak_val = np.max(rms_norm[i:end_scan]) if i < end_scan else 0
+                        if peak_val > 0.7:
+                            peak_idx = i + np.argmax(rms_norm[i:end_scan])
+                            suspense_hooks.append({
+                                "suspense_start": round(float(low_energy_start), 2),
+                                "suspense_end": round(float(times[i]), 2),
+                                "silence_duration": round(float(silence_duration), 2),
+                                "climax_peak_time": round(float(times[peak_idx]), 2),
+                                "climax_intensity": round(float(peak_val), 2),
+                                "type": "suspense_climax_hook"
+                            })
+                    low_energy_start = None
+
         return {
             "overall_pitch_variance": round(float(pitch_var), 2),
             "overall_intensity": round(float(intensity_score), 2),
+            "spectral_flux_variance": round(float(spectral_flux_var), 2),
+            "spectral_flux_max": round(float(spectral_flux_max), 2),
             "silence_ratio": round(float(silence_ratio), 2),
             "loudness_spikes_count": len(loudness_spikes),
-            "audio_events": events
+            "audio_events": events,
+            "suspense_hooks": suspense_hooks
         }
 
 class OCRProcessor:
@@ -341,6 +445,19 @@ class VideoUnderstandingPipeline:
         except Exception as e:
             print(f"  [Chunk {chunk_data['chunk_id']}] Diarization failed: {e}")
         
+        # Calculate speaker turns (Turn Density)
+        speaker_turns = []
+        last_speaker = None
+        for seg in transcript:
+            curr_speaker = seg.get("speaker")
+            if curr_speaker and curr_speaker != last_speaker:
+                speaker_turns.append({
+                    "timestamp": seg["start"],
+                    "from_speaker": last_speaker,
+                    "to_speaker": curr_speaker
+                })
+                last_speaker = curr_speaker
+        
         # 4. Emotion Detection
         emotions = []
         try:
@@ -374,9 +491,11 @@ class VideoUnderstandingPipeline:
             "scenes": scenes,
             "transcript": transcript,
             "speakers": speakers,
+            "speaker_turns": speaker_turns,
             "emotions": emotions,
             "audio_data": audio_data,
             "audio_events": audio_data.get("audio_events", []),
+            "suspense_hooks": audio_data.get("suspense_hooks", []),
             "ocr_detections": ocr_detections
         }
 

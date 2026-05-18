@@ -36,7 +36,9 @@ async def read_index():
 async def process_video_upload(
     video: UploadFile = File(...),
     genre: str = Form("drama"),
-    partition_mode: bool = Form(True) # Default to continuous partition mode
+    partition_mode: bool = Form(True), # Default to continuous partition mode
+    star_cast: str = Form(None),       # Comma-separated star names (optional)
+    target_moment: str = Form(None)   # Optional moment filter: action, comedy, dialogue, suspense, celebrity
 ):
     """
     Upload a video file, and stream progress updates as each layer completes.
@@ -80,6 +82,29 @@ async def process_video_upload(
             # Layer 5: Episodic Sequencing Engine
             l5 = EpisodicSequencingEngine()
             l5_result_path = l5.process_job(l4_result_path, genre=genre, partition_mode=partition_mode)
+            
+            # Apply dynamic moment filtering if target_moment is set
+            if target_moment and target_moment != "all":
+                with open(l5_result_path, "r") as f:
+                    final_data = json.load(f)
+                    
+                filtered_series = []
+                for s in final_data.get("series", []):
+                    filtered_episodes = []
+                    for ep in s.get("episodes", []):
+                        m_types = [m.lower() for m in ep.get("moment_types", [])]
+                        if target_moment.lower() in m_types:
+                            filtered_episodes.append(ep)
+                    if filtered_episodes:
+                        s_copy = s.copy()
+                        s_copy["episodes"] = filtered_episodes
+                        s_copy["total_episodes"] = len(filtered_episodes)
+                        filtered_series.append(s_copy)
+                final_data["series"] = filtered_series
+                
+                with open(l5_result_path, "w") as f:
+                    json.dump(final_data, f, indent=2)
+                    
             yield json.dumps({"status": "Layer 5 Complete: Series Structured.", "progress": 95}) + "\n"
 
             yield json.dumps({"status": "Layer 6: Final Clipping...", "progress": 97}) + "\n"
